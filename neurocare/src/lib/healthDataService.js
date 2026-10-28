@@ -12,6 +12,9 @@ import {
   MOCK_BASELINE_FORM_DATA,
   MOCK_BASELINE_COMPARISON_DETAILED,
   MOCK_BASELINE_HISTORY,
+  MOCK_ASSESSMENTS_OVERVIEW,
+  MOCK_ASSESSMENT_HISTORY,
+  MOCK_ASSESSMENT_TRENDS,
 } from './mockData';
 
 /**
@@ -298,6 +301,153 @@ export async function saveBaselineDraft(payload) {
   return {
     success: true,
     message: "Draft saved in active session memory.",
+    data: payload,
+  };
+}
+
+/**
+ * Cognitive Assessments Service Methods
+ */
+
+export async function fetchAssessmentOverview(isDemo = true) {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      // Future Supabase query placeholder
+    } catch (err) {
+      console.warn("Error fetching assessment overview:", err);
+    }
+  }
+
+  if (isDemo) {
+    return MOCK_ASSESSMENTS_OVERVIEW;
+  }
+
+  return {
+    totalCompletedSessions: 0,
+    mostRecentDate: "Not yet assessed",
+    baselineAvailable: false,
+    baselineEstablishedDate: null,
+    cards: {
+      reaction: {
+        id: "neuro-reaction",
+        title: "NeuroReaction",
+        badge: "Processing Speed",
+        description: "Measures visual stimulus detection latency, motor response time, and trial-by-trial variance.",
+        lastCompletedDate: "Not yet assessed",
+        latestMedianMs: null,
+        unit: "ms",
+        completedSessionsCount: 0,
+        baselineMedianMs: null,
+        differenceVsBaseline: null,
+        status: "Available",
+      },
+      attention: {
+        id: "neuro-attention",
+        title: "NeuroAttention",
+        badge: "Sustained Attention",
+        description: "Target-detection task measuring vigilance, hit accuracy, and omission errors across rapid trials.",
+        lastCompletedDate: "Not yet assessed",
+        latestAccuracy: null,
+        correctResponses: 0,
+        missedResponses: 0,
+        unit: "%",
+        completedSessionsCount: 0,
+        baselineAccuracy: null,
+        differenceVsBaseline: null,
+        status: "Available",
+      },
+      memory: {
+        id: "neuro-memory",
+        title: "NeuroMemory",
+        badge: "Working Memory",
+        description: "Sequential tile pattern recall measuring short-term spatial span and active recall fidelity.",
+        lastCompletedDate: "Not yet assessed",
+        latestAccuracy: null,
+        longestSequence: null,
+        unit: "tiles",
+        completedSessionsCount: 0,
+        baselineLongestSequence: null,
+        differenceVsBaseline: null,
+        status: "Available",
+      },
+      motion: {
+        id: "neuro-motion",
+        title: "NeuroMotion",
+        badge: "Motor Coordination",
+        description: "Rapid finger-tapping task measuring motor cadence, rhythm consistency, and motor fatigue.",
+        lastCompletedDate: "Not yet assessed",
+        latestTapsPerSec: null,
+        completionTime: null,
+        unit: "taps/s",
+        completedSessionsCount: 0,
+        baselineTapsPerSec: null,
+        differenceVsBaseline: null,
+        status: "Available",
+      },
+    },
+  };
+}
+
+export async function fetchAssessmentHistory(isDemo = true) {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      // Future Supabase query placeholder:
+      // const { data } = await supabase.from('assessment_sessions').select('*').order('created_at', { ascending: false });
+    } catch (err) {
+      console.warn("Error fetching assessment history:", err);
+    }
+  }
+
+  if (isDemo) {
+    return MOCK_ASSESSMENT_HISTORY;
+  }
+
+  return [];
+}
+
+export async function fetchAssessmentTrends(isDemo = true) {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      // Future Supabase query placeholder
+    } catch (err) {
+      console.warn("Error fetching assessment trends:", err);
+    }
+  }
+
+  if (isDemo) {
+    return MOCK_ASSESSMENT_TRENDS;
+  }
+
+  return {
+    reaction: { metricName: "Reaction Speed (ms)", unit: "ms", description: "Median reaction time across completed test sessions.", baselineValue: 226, yDomain: [180, 260], data: [] },
+    attention: { metricName: "Target Detection Accuracy (%)", unit: "%", description: "Target stimuli detection accuracy percentage.", baselineValue: 91, yDomain: [70, 100], data: [] },
+    memory: { metricName: "Longest Sequence Recalled", unit: "items", description: "Maximum sequence length successfully reproduced.", baselineValue: 5, yDomain: [2, 8], data: [] },
+    motion: { metricName: "Finger Tapping Cadence (taps/s)", unit: "taps/s", description: "Average taps per second over 10s interval.", baselineValue: 5.9, yDomain: [3, 8], data: [] },
+  };
+}
+
+export async function saveAssessmentResult(payload) {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      // const { data, error } = await supabase.from('assessment_sessions').insert({
+      //   user_id: user?.id,
+      //   assessment_type: payload.type,
+      //   measured_values: payload.results,
+      //   trial_count: payload.trialsCount,
+      //   version: '2.0',
+      //   created_at: new Date().toISOString()
+      // }).select().single();
+      // if (error) throw error;
+      // return { success: true, data };
+    } catch (err) {
+      console.error("Failed to save assessment to Supabase:", err);
+    }
+  }
+
+  return {
+    success: true,
+    message: "Assessment session saved to local prototype session memory.",
     data: payload,
   };
 }
