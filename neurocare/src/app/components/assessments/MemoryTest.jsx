@@ -11,6 +11,11 @@ import {
   Info,
   Sparkles,
 } from 'lucide-react';
+import {
+  getPreciseTimestamp,
+  generateMemoryTileSequence,
+  calculateMemoryStats,
+} from '@/lib/assessmentEngine';
 
 const GRID_TILES = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 const INITIAL_SEQUENCE_LENGTH = 3;
@@ -37,7 +42,7 @@ export default function MemoryTest({ onComplete, onCancel }) {
   }, []);
 
   const handleStartSession = () => {
-    sessionStartTimeRef.current = performance.now();
+    sessionStartTimeRef.current = getPreciseTimestamp();
     setSequenceLength(INITIAL_SEQUENCE_LENGTH);
     setLongestSequenceRecalled(0);
     setAttemptsCount(0);
@@ -45,17 +50,8 @@ export default function MemoryTest({ onComplete, onCancel }) {
     startNewSequenceTrial(INITIAL_SEQUENCE_LENGTH, 0, 0, 0);
   };
 
-  const generateRandomSequence = (len) => {
-    const seq = [];
-    for (let i = 0; i < len; i++) {
-      const randomTile = Math.floor(Math.random() * 9) + 1;
-      seq.push(randomTile);
-    }
-    return seq;
-  };
-
   const startNewSequenceTrial = (len, currentAttempts, currentCorrect, currentLongest) => {
-    const newSeq = generateRandomSequence(len);
+    const newSeq = generateMemoryTileSequence(len);
     setTargetSequence(newSeq);
     setUserInputs([]);
     setActiveHighlightTile(null);
@@ -73,7 +69,6 @@ export default function MemoryTest({ onComplete, onCancel }) {
           sequenceTimerRef.current = setTimeout(playNext, 300);
         }, 700);
       } else {
-        // Sequence playback complete. Allow user recall
         setActiveHighlightTile(null);
         setTestState('RECALL');
       }
@@ -90,20 +85,18 @@ export default function MemoryTest({ onComplete, onCancel }) {
 
     const currentIndex = nextInputs.length - 1;
 
-    // Check if the clicked tile matches target sequence at currentIndex
+    // Check if clicked tile matches target sequence
     if (tileNumber !== targetSequence[currentIndex]) {
-      // Mistake made!
       setAttemptsCount((prev) => prev + 1);
       setTestState('TRIAL_FAIL');
 
       sequenceTimerRef.current = setTimeout(() => {
-        // Conclude assessment if error reached
         finishSession(attemptsCount + 1, correctAttempts, longestSequenceRecalled);
       }, 1500);
       return;
     }
 
-    // If whole sequence matched successfully!
+    // Whole sequence matched successfully
     if (nextInputs.length === targetSequence.length) {
       const newAttempts = attemptsCount + 1;
       const newCorrect = correctAttempts + 1;
@@ -115,12 +108,10 @@ export default function MemoryTest({ onComplete, onCancel }) {
       setTestState('TRIAL_SUCCESS');
 
       if (sequenceLength >= MAX_SEQUENCE_LENGTH) {
-        // Reached maximum test capacity
         sequenceTimerRef.current = setTimeout(() => {
           finishSession(newAttempts, newCorrect, newLongest);
         }, 1500);
       } else {
-        // Advance to next level
         const nextLen = sequenceLength + 1;
         setSequenceLength(nextLen);
         sequenceTimerRef.current = setTimeout(() => {
@@ -131,19 +122,15 @@ export default function MemoryTest({ onComplete, onCancel }) {
   };
 
   const finishSession = (totalAttempts, correctCount, maxSeq) => {
-    const totalDurationSec = Math.round((performance.now() - sessionStartTimeRef.current) / 1000);
-    const accuracy = totalAttempts > 0 ? Math.round((correctCount / totalAttempts) * 100) : 0;
+    const totalDurationMs = getPreciseTimestamp() - (sessionStartTimeRef.current || getPreciseTimestamp());
+    const stats = calculateMemoryStats(totalAttempts, correctCount, maxSeq, totalDurationMs);
 
     setTestState('FINISHED');
 
     onComplete({
       type: 'NeuroMemory',
       typeKey: 'memory',
-      longestSequence: maxSeq,
-      accuracy,
-      totalAttempts,
-      correctCount,
-      duration: `${totalDurationSec} seconds`,
+      ...stats,
       completedDate: new Date().toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
@@ -221,7 +208,6 @@ export default function MemoryTest({ onComplete, onCancel }) {
           <div className="grid grid-cols-3 gap-3 p-4 bg-slate-900 rounded-2xl max-w-sm mx-auto shadow-inner">
             {GRID_TILES.map((tileNum) => {
               const isHighlighted = activeHighlightTile === tileNum;
-              const isUserClicked = userInputs.includes(tileNum);
 
               return (
                 <button

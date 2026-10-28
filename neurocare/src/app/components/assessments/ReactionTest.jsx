@@ -8,10 +8,13 @@ import {
   CheckCircle2,
   AlertTriangle,
   Clock,
-  ArrowLeft,
   Info,
-  ShieldCheck,
 } from 'lucide-react';
+import {
+  getPreciseTimestamp,
+  getRandomDelay,
+  calculateReactionStats,
+} from '@/lib/assessmentEngine';
 
 const TOTAL_TRIALS = 5;
 
@@ -23,14 +26,14 @@ export default function ReactionTest({ onComplete, onCancel }) {
   const [validTrials, setValidTrials] = useState([]);
   const [prematureCount, setPrematureCount] = useState(0);
   const [lastTrialLatency, setLastTrialLatency] = useState(null);
-  const [sessionStartTime, setSessionStartTime] = useState(null);
 
-  // References to preserve precise high-resolution timing without React re-render lag
+  // References to preserve precise high-resolution timing
+  const sessionStartRef = useRef(null);
   const stimulusTimestampRef = useRef(null);
   const delayTimerRef = useRef(null);
   const feedbackTimerRef = useRef(null);
 
-  // Clean up timers on unmount to prevent memory leaks or state updates after unmount
+  // Clean up timers on unmount
   useEffect(() => {
     return () => {
       if (delayTimerRef.current) clearTimeout(delayTimerRef.current);
@@ -43,7 +46,7 @@ export default function ReactionTest({ onComplete, onCancel }) {
     setValidTrials([]);
     setPrematureCount(0);
     setCurrentTrial(1);
-    setSessionStartTime(performance.now());
+    sessionStartRef.current = getPreciseTimestamp();
     startTrialDelay(1);
   };
 
@@ -52,14 +55,12 @@ export default function ReactionTest({ onComplete, onCancel }) {
     setTestState('WAITING');
     stimulusTimestampRef.current = null;
 
-    // Randomized delay between 1.5s and 3.8s
-    const randomDelay = Math.floor(Math.random() * 2300) + 1500;
-
     if (delayTimerRef.current) clearTimeout(delayTimerRef.current);
 
+    const randomDelay = getRandomDelay(1500, 3600);
+
     delayTimerRef.current = setTimeout(() => {
-      // Trigger Stimulus
-      stimulusTimestampRef.current = performance.now();
+      stimulusTimestampRef.current = getPreciseTimestamp();
       setTestState('STIMULUS');
     }, randomDelay);
   };
@@ -67,12 +68,11 @@ export default function ReactionTest({ onComplete, onCancel }) {
   // User click / tap handler
   const handleStimulusInteraction = () => {
     if (testState === 'WAITING') {
-      // Premature click before stimulus appeared!
+      // Premature click before stimulus appeared
       if (delayTimerRef.current) clearTimeout(delayTimerRef.current);
       setPrematureCount((prev) => prev + 1);
       setTestState('PREMATURE');
 
-      // Reset trial delay after brief warning pause
       feedbackTimerRef.current = setTimeout(() => {
         startTrialDelay(currentTrial);
       }, 1600);
@@ -80,8 +80,7 @@ export default function ReactionTest({ onComplete, onCancel }) {
     }
 
     if (testState === 'STIMULUS') {
-      // High-precision timing calculation
-      const responseTime = performance.now();
+      const responseTime = getPreciseTimestamp();
       const latency = Math.round(responseTime - (stimulusTimestampRef.current || responseTime));
 
       setLastTrialLatency(latency);
@@ -91,57 +90,33 @@ export default function ReactionTest({ onComplete, onCancel }) {
       setTestState('TRIAL_FEEDBACK');
 
       if (updatedTrials.length >= TOTAL_TRIALS) {
-        // All trials completed!
-        const totalDurationSec = Math.round((performance.now() - sessionStartTime) / 1000);
+        const totalDurationMs = getPreciseTimestamp() - (sessionStartRef.current || getPreciseTimestamp());
 
         feedbackTimerRef.current = setTimeout(() => {
           setTestState('FINISHED');
-          calculateAndDeliverResults(updatedTrials, prematureCount, totalDurationSec);
+          const stats = calculateReactionStats(updatedTrials, prematureCount, totalDurationMs);
+
+          onComplete({
+            type: 'NeuroReaction',
+            typeKey: 'reaction',
+            ...stats,
+            trials: updatedTrials,
+            completedDate: new Date().toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+          });
         }, 1200);
       } else {
-        // Proceed to next trial after 1.2s feedback
         feedbackTimerRef.current = setTimeout(() => {
           setCurrentTrial((prev) => prev + 1);
           startTrialDelay(currentTrial + 1);
         }, 1200);
       }
     }
-  };
-
-  const calculateAndDeliverResults = (trials, premature, durationSec) => {
-    if (trials.length === 0) return;
-
-    // Calculate median
-    const sorted = [...trials].sort((a, b) => a - b);
-    const mid = Math.floor(sorted.length / 2);
-    const median = sorted.length % 2 !== 0 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
-
-    // Calculate mean
-    const mean = Math.round(trials.reduce((sum, val) => sum + val, 0) / trials.length);
-    const fastest = sorted[0];
-    const slowest = sorted[sorted.length - 1];
-
-    const resultPayload = {
-      type: 'NeuroReaction',
-      typeKey: 'reaction',
-      median,
-      mean,
-      fastest,
-      slowest,
-      validTrialsCount: trials.length,
-      prematureCount: premature,
-      duration: `${durationSec} seconds`,
-      trials,
-      completedDate: new Date().toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
-    };
-
-    onComplete(resultPayload);
   };
 
   const handleRestart = () => {

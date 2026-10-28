@@ -14,6 +14,11 @@ import {
   Square,
   Triangle,
 } from 'lucide-react';
+import {
+  getPreciseTimestamp,
+  getRandomShapeChoice,
+  calculateAttentionStats,
+} from '@/lib/assessmentEngine';
 
 const SHAPES = [
   { id: 'diamond', name: 'Diamond', icon: Diamond, isTarget: true, color: 'text-cyan-500' },
@@ -22,9 +27,9 @@ const SHAPES = [
   { id: 'triangle', name: 'Triangle', icon: Triangle, isTarget: false, color: 'text-slate-400' },
 ];
 
-const TOTAL_STIMULI = 15; // 15 rapid presentations
+const TOTAL_STIMULI = 15;
 const DISPLAY_DURATION_MS = 1000;
-const ISI_MS = 400; // Inter-stimulus interval
+const ISI_MS = 400;
 
 export default function AttentionTest({ onComplete, onCancel }) {
   const [testState, setTestState] = useState('IDLE'); // 'IDLE' | 'RUNNING' | 'FINISHED'
@@ -34,8 +39,6 @@ export default function AttentionTest({ onComplete, onCancel }) {
   const [scoreHits, setScoreHits] = useState(0);
   const [scoreMisses, setScoreMisses] = useState(0);
   const [scoreFalseAlarms, setScoreFalseAlarms] = useState(0);
-  const [scoreCorrectRejections, setScoreCorrectRejections] = useState(0);
-  const [hitReactionTimes, setHitReactionTimes] = useState([]);
 
   const sessionStartTimeRef = useRef(null);
   const stimulusOnsetRef = useRef(null);
@@ -56,10 +59,8 @@ export default function AttentionTest({ onComplete, onCancel }) {
     setScoreHits(0);
     setScoreMisses(0);
     setScoreFalseAlarms(0);
-    setScoreCorrectRejections(0);
-    setHitReactionTimes([]);
     setCurrentStimulusIndex(0);
-    sessionStartTimeRef.current = performance.now();
+    sessionStartTimeRef.current = getPreciseTimestamp();
     setTestState('RUNNING');
 
     runTrial(0, 0, 0, 0, 0, []);
@@ -67,26 +68,15 @@ export default function AttentionTest({ onComplete, onCancel }) {
 
   const runTrial = (index, hits, misses, falseAlarms, correctRejections, rts) => {
     if (index >= TOTAL_STIMULI) {
-      // Completed!
-      const totalDurationSec = Math.round((performance.now() - sessionStartTimeRef.current) / 1000);
-      const totalTrials = TOTAL_STIMULI;
-      const correctDecisions = hits + correctRejections;
-      const accuracy = Math.round((correctDecisions / totalTrials) * 100);
-      const avgHitRt = rts.length > 0 ? Math.round(rts.reduce((a, b) => a + b, 0) / rts.length) : null;
+      const totalDurationMs = getPreciseTimestamp() - (sessionStartTimeRef.current || getPreciseTimestamp());
+      const stats = calculateAttentionStats(hits, misses, falseAlarms, correctRejections, rts, totalDurationMs);
 
       setTestState('FINISHED');
 
       onComplete({
         type: 'NeuroAttention',
         typeKey: 'attention',
-        accuracy,
-        hits,
-        misses,
-        falseAlarms,
-        correctRejections,
-        avgHitRt,
-        totalTrials,
-        duration: `${totalDurationSec} seconds`,
+        ...stats,
         completedDate: new Date().toLocaleDateString('en-US', {
           month: 'short',
           day: 'numeric',
@@ -100,21 +90,15 @@ export default function AttentionTest({ onComplete, onCancel }) {
 
     setCurrentStimulusIndex(index + 1);
 
-    // 40% probability of Target (Diamond), 60% probability of Distractor
-    const isTarget = Math.random() < 0.4;
-    const selectedShape = isTarget
-      ? SHAPES[0] // Diamond
-      : SHAPES[Math.floor(Math.random() * (SHAPES.length - 1)) + 1];
+    const selectedShape = getRandomShapeChoice(SHAPES, 0.4);
 
     currentShapeRef.current = selectedShape;
     userClickedRef.current = false;
     setCurrentShape(selectedShape);
     setUserClickedCurrent(false);
-    stimulusOnsetRef.current = performance.now();
+    stimulusOnsetRef.current = getPreciseTimestamp();
 
-    // Stimulus display timer (1000ms)
     sequenceTimerRef.current = setTimeout(() => {
-      // Evaluate trial outcome if user didn't click
       let updatedHits = hits;
       let updatedMisses = misses;
       let updatedFalseAlarms = falseAlarms;
@@ -126,11 +110,9 @@ export default function AttentionTest({ onComplete, onCancel }) {
           setScoreMisses(updatedMisses);
         } else {
           updatedCorrectRejections += 1;
-          setScoreCorrectRejections(updatedCorrectRejections);
         }
       }
 
-      // Hide stimulus for ISI interval
       setCurrentShape(null);
 
       isiTimerRef.current = setTimeout(() => {
@@ -144,14 +126,11 @@ export default function AttentionTest({ onComplete, onCancel }) {
     userClickedRef.current = true;
     setUserClickedCurrent(true);
 
-    const clickLatency = Math.round(performance.now() - stimulusOnsetRef.current);
+    const clickLatency = Math.round(getPreciseTimestamp() - (stimulusOnsetRef.current || getPreciseTimestamp()));
 
     if (currentShapeRef.current.isTarget) {
-      // Valid Hit!
       setScoreHits((prev) => prev + 1);
-      setHitReactionTimes((prev) => [...prev, clickLatency]);
     } else {
-      // False Alarm!
       setScoreFalseAlarms((prev) => prev + 1);
     }
   };
