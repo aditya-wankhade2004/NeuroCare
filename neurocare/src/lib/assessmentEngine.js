@@ -114,3 +114,4 @@ export function calculateMotionStats(tapTimestamps, testDurationSec) {
     duration: `${testDurationSec} seconds`,
   };
 }
+

@@ -9,8 +9,11 @@ import {
   Clock,
   Info,
   Hand,
-  Footprints,
 } from 'lucide-react';
+import {
+  getPreciseTimestamp,
+  calculateMotionStats,
+} from '@/lib/assessmentEngine';
 
 const TEST_DURATION_SECONDS = 10;
 
@@ -19,7 +22,6 @@ export default function MotionTest({ onComplete, onCancel }) {
   const [timeLeft, setTimeLeft] = useState(TEST_DURATION_SECONDS);
   const [tapCount, setTapCount] = useState(0);
 
-  const sessionStartTimeRef = useRef(null);
   const countdownIntervalRef = useRef(null);
   const tapTimestampsRef = useRef([]);
 
@@ -34,7 +36,6 @@ export default function MotionTest({ onComplete, onCancel }) {
     setTapCount(0);
     setTimeLeft(TEST_DURATION_SECONDS);
     tapTimestampsRef.current = [];
-    sessionStartTimeRef.current = performance.now();
     setTestState('RUNNING');
 
     countdownIntervalRef.current = setInterval(() => {
@@ -51,30 +52,18 @@ export default function MotionTest({ onComplete, onCancel }) {
 
   const handleTap = () => {
     if (testState !== 'RUNNING') return;
-    const now = performance.now();
-    tapTimestampsRef.current.push(now);
+    tapTimestampsRef.current.push(getPreciseTimestamp());
     setTapCount((prev) => prev + 1);
   };
 
   const concludeSession = () => {
     setTestState('FINISHED');
-    const totalTaps = tapTimestampsRef.current.length;
-    const tapsPerSec = Number((totalTaps / TEST_DURATION_SECONDS).toFixed(1));
-
-    // Calculate cadence variance (intervals between consecutive taps)
-    const intervals = [];
-    for (let i = 1; i < tapTimestampsRef.current.length; i++) {
-      intervals.push(tapTimestampsRef.current[i] - tapTimestampsRef.current[i - 1]);
-    }
-    const avgIntervalMs = intervals.length > 0 ? Math.round(intervals.reduce((a, b) => a + b, 0) / intervals.length) : 0;
+    const stats = calculateMotionStats(tapTimestampsRef.current, TEST_DURATION_SECONDS);
 
     onComplete({
       type: 'NeuroMotion',
       typeKey: 'motion',
-      tapsPerSec,
-      totalTaps,
-      avgIntervalMs,
-      duration: `${TEST_DURATION_SECONDS} seconds`,
+      ...stats,
       completedDate: new Date().toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
