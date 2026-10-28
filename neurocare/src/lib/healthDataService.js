@@ -8,6 +8,10 @@ import {
   MOCK_CHANGE_INSIGHTS,
   MOCK_RECENT_ACTIVITY,
   MOCK_DEVICES,
+  MOCK_BASELINE_OVERVIEW,
+  MOCK_BASELINE_FORM_DATA,
+  MOCK_BASELINE_COMPARISON_DETAILED,
+  MOCK_BASELINE_HISTORY,
 } from './mockData';
 
 /**
@@ -161,4 +165,139 @@ export async function fetchNotifications(isDemo = true) {
     return MOCK_NOTIFICATIONS;
   }
   return [];
+}
+
+/**
+ * Health Baseline Service API Methods
+ */
+
+export async function fetchBaselineOverview(isDemo = true) {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      // Future Supabase query placeholder:
+      // const { data } = await supabase.from('baseline_overviews').select('*').single();
+      // if (data) return data;
+    } catch (err) {
+      console.warn("Error fetching baseline overview:", err);
+    }
+  }
+
+  if (isDemo) {
+    return MOCK_BASELINE_OVERVIEW;
+  }
+
+  return {
+    status: "Not Started",
+    establishedDate: null,
+    lastUpdatedDate: null,
+    calibrationWindowDays: 0,
+    recordedMeasurementsCount: 0,
+    cognitiveSessionsCount: 0,
+    completedFieldsCount: 0,
+    totalOptionalFieldsCount: 7,
+    completenessPercentage: 0,
+    completenessNote: "No baseline measurements have been established yet. Use the setup form below or pair a device to start.",
+  };
+}
+
+export async function fetchBaselineFormData(isDemo = true) {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      // Future Supabase query placeholder for user's active baseline draft / record
+    } catch (err) {
+      console.warn("Error fetching baseline form data:", err);
+    }
+  }
+
+  if (isDemo) {
+    return MOCK_BASELINE_FORM_DATA;
+  }
+
+  return {
+    general: {
+      ageRange: "",
+      preferredUnits: "metric",
+      notes: "",
+    },
+    measurements: {
+      heartRate: { value: "", unit: "BPM", date: "", source: "", isDevice: false },
+      sleepDuration: { value: "", unit: "hours", date: "", source: "", isDevice: false },
+      dailySteps: { value: "", unit: "steps", date: "", source: "", isDevice: false },
+      bloodPressureSys: { value: "", unit: "mmHg", date: "", source: "", isDevice: false },
+      bloodPressureDia: { value: "", unit: "mmHg", date: "", source: "", isDevice: false },
+    },
+    cognitive: {
+      reactionTime: { value: null, unit: "ms", taskName: "Symbol-Digit Matching Latency", date: null, method: "10-trial visual reaction battery", completed: false },
+      attention: { value: null, unit: "%", taskName: "Sustained Attention Index", date: null, method: "Color-Word Stroop Battery", completed: false },
+      memory: { value: null, unit: "%", taskName: "Working Memory Accuracy", date: null, method: "Dual 2-Back Spatial Recall", completed: false },
+      motorCoordination: { value: null, unit: "taps/10s", taskName: "Motor Coordination & Cadence", date: null, method: "Finger Tapping Test", completed: false },
+    },
+    conditions: {
+      timeOfDay: "",
+      sleepPriorHours: "",
+      sourceType: "manual",
+      conditionNotes: "",
+    },
+  };
+}
+
+export async function fetchBaselineDetailedComparison(isDemo = true) {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      // Future Supabase query placeholder
+    } catch (err) {
+      console.warn("Error fetching baseline comparisons:", err);
+    }
+  }
+
+  if (isDemo) {
+    return MOCK_BASELINE_COMPARISON_DETAILED;
+  }
+
+  return [];
+}
+
+export async function fetchBaselineHistory(isDemo = true) {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      // Future Supabase query placeholder
+    } catch (err) {
+      console.warn("Error fetching baseline history:", err);
+    }
+  }
+
+  if (isDemo) {
+    return MOCK_BASELINE_HISTORY;
+  }
+
+  return [];
+}
+
+export async function saveBaselineRecord(payload) {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      // const { data, error } = await supabase.from('baselines').insert(payload).select().single();
+      // if (error) throw error;
+      // return { success: true, data };
+    } catch (err) {
+      console.error("Failed to save baseline record to Supabase:", err);
+      return { success: false, error: err.message };
+    }
+  }
+
+  // Simulation mode response
+  return {
+    success: true,
+    message: "Baseline saved in simulated session. Connect Supabase for persistent cloud storage.",
+    data: payload,
+  };
+}
+
+export async function saveBaselineDraft(payload) {
+  // Safe session draft placeholder
+  return {
+    success: true,
+    message: "Draft saved in active session memory.",
+    data: payload,
+  };
 }
