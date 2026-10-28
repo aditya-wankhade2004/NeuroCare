@@ -23,92 +23,82 @@ import {
   FileCheck,
 } from 'lucide-react';
 
+function getInitialFormValues(initialData) {
+  if (!initialData) {
+    return {
+      ageRange: '',
+      preferredUnits: 'metric',
+      generalNotes: '',
+      heartRate: '',
+      heartRateDate: '',
+      heartRateSource: '',
+      heartRateIsDevice: true,
+      sleepDuration: '',
+      sleepDate: '',
+      sleepSource: '',
+      sleepIsDevice: true,
+      dailySteps: '',
+      stepsDate: '',
+      stepsSource: '',
+      stepsIsDevice: true,
+      bloodPressureSys: '',
+      bloodPressureDia: '',
+      bpDate: '',
+      bpSource: '',
+      bpIsDevice: false,
+      timeOfDay: 'Morning (08:00 - 10:00)',
+      sleepPriorHours: '',
+      sourceType: 'Connected Wearable & Validated Manual Log',
+      conditionNotes: '',
+    };
+  }
+
+  return {
+    ageRange: initialData.general?.ageRange || '',
+    preferredUnits: initialData.general?.preferredUnits || 'metric',
+    generalNotes: initialData.general?.notes || '',
+
+    heartRate: initialData.measurements?.heartRate?.value !== undefined ? String(initialData.measurements.heartRate.value) : '',
+    heartRateDate: initialData.measurements?.heartRate?.date || '',
+    heartRateSource: initialData.measurements?.heartRate?.source || '',
+    heartRateIsDevice: initialData.measurements?.heartRate?.isDevice ?? true,
+
+    sleepDuration: initialData.measurements?.sleepDuration?.value !== undefined ? String(initialData.measurements.sleepDuration.value) : '',
+    sleepDate: initialData.measurements?.sleepDuration?.date || '',
+    sleepSource: initialData.measurements?.sleepDuration?.source || '',
+    sleepIsDevice: initialData.measurements?.sleepDuration?.isDevice ?? true,
+
+    dailySteps: initialData.measurements?.dailySteps?.value !== undefined ? String(initialData.measurements.dailySteps.value) : '',
+    stepsDate: initialData.measurements?.dailySteps?.date || '',
+    stepsSource: initialData.measurements?.dailySteps?.source || '',
+    stepsIsDevice: initialData.measurements?.dailySteps?.isDevice ?? true,
+
+    bloodPressureSys: initialData.measurements?.bloodPressureSys?.value !== undefined ? String(initialData.measurements.bloodPressureSys.value) : '',
+    bloodPressureDia: initialData.measurements?.bloodPressureDia?.value !== undefined ? String(initialData.measurements.bloodPressureDia.value) : '',
+    bpDate: initialData.measurements?.bloodPressureSys?.date || '',
+    bpSource: initialData.measurements?.bloodPressureSys?.source || '',
+    bpIsDevice: initialData.measurements?.bloodPressureSys?.isDevice ?? false,
+
+    timeOfDay: initialData.conditions?.timeOfDay || 'Morning (08:00 - 10:00)',
+    sleepPriorHours: initialData.conditions?.sleepPriorHours !== undefined ? String(initialData.conditions.sleepPriorHours) : '',
+    sourceType: initialData.conditions?.sourceType || 'Connected Wearable & Validated Manual Log',
+    conditionNotes: initialData.conditions?.conditionNotes || '',
+  };
+}
+
 export default function BaselineSetupForm({
   initialData,
   onSaveBaseline,
   isDemoMode = true,
 }) {
-  const [formData, setFormData] = useState({
-    // Section A: General
-    ageRange: '',
-    preferredUnits: 'metric',
-    generalNotes: '',
-
-    // Section B: Basic Health
-    heartRate: '',
-    heartRateDate: '',
-    heartRateSource: '',
-    heartRateIsDevice: true,
-
-    sleepDuration: '',
-    sleepDate: '',
-    sleepSource: '',
-    sleepIsDevice: true,
-
-    dailySteps: '',
-    stepsDate: '',
-    stepsSource: '',
-    stepsIsDevice: true,
-
-    bloodPressureSys: '',
-    bloodPressureDia: '',
-    bpDate: '',
-    bpSource: '',
-    bpIsDevice: false,
-
-    // Section D: Conditions
-    timeOfDay: 'Morning (08:00 - 10:00)',
-    sleepPriorHours: '',
-    sourceType: 'Connected Wearable & Validated Manual Log',
-    conditionNotes: '',
-  });
-
-  const [cognitiveResults, setCognitiveResults] = useState(null);
+  const [formData, setFormData] = useState(() => getInitialFormValues(initialData));
+  const [cognitiveResults] = useState(() => initialData?.cognitive || null);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [draftSavedAt, setDraftSavedAt] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [statusNotification, setStatusNotification] = useState(null);
-
-  // Initialize or populate from initialData
-  useEffect(() => {
-    if (initialData) {
-      setFormData({
-        ageRange: initialData.general?.ageRange || '',
-        preferredUnits: initialData.general?.preferredUnits || 'metric',
-        generalNotes: initialData.general?.notes || '',
-
-        heartRate: initialData.measurements?.heartRate?.value !== undefined ? String(initialData.measurements.heartRate.value) : '',
-        heartRateDate: initialData.measurements?.heartRate?.date || '',
-        heartRateSource: initialData.measurements?.heartRate?.source || '',
-        heartRateIsDevice: initialData.measurements?.heartRate?.isDevice ?? true,
-
-        sleepDuration: initialData.measurements?.sleepDuration?.value !== undefined ? String(initialData.measurements.sleepDuration.value) : '',
-        sleepDate: initialData.measurements?.sleepDuration?.date || '',
-        sleepSource: initialData.measurements?.sleepDuration?.source || '',
-        sleepIsDevice: initialData.measurements?.sleepDuration?.isDevice ?? true,
-
-        dailySteps: initialData.measurements?.dailySteps?.value !== undefined ? String(initialData.measurements.dailySteps.value) : '',
-        stepsDate: initialData.measurements?.dailySteps?.date || '',
-        stepsSource: initialData.measurements?.dailySteps?.source || '',
-        stepsIsDevice: initialData.measurements?.dailySteps?.isDevice ?? true,
-
-        bloodPressureSys: initialData.measurements?.bloodPressureSys?.value !== undefined ? String(initialData.measurements.bloodPressureSys.value) : '',
-        bloodPressureDia: initialData.measurements?.bloodPressureDia?.value !== undefined ? String(initialData.measurements.bloodPressureDia.value) : '',
-        bpDate: initialData.measurements?.bloodPressureSys?.date || '',
-        bpSource: initialData.measurements?.bloodPressureSys?.source || '',
-        bpIsDevice: initialData.measurements?.bloodPressureSys?.isDevice ?? false,
-
-        timeOfDay: initialData.conditions?.timeOfDay || 'Morning (08:00 - 10:00)',
-        sleepPriorHours: initialData.conditions?.sleepPriorHours !== undefined ? String(initialData.conditions.sleepPriorHours) : '',
-        sourceType: initialData.conditions?.sourceType || 'Connected Wearable & Validated Manual Log',
-        conditionNotes: initialData.conditions?.conditionNotes || '',
-      });
-
-      setCognitiveResults(initialData.cognitive || null);
-    }
-  }, [initialData]);
 
   // Validation function
   const validateForm = () => {
