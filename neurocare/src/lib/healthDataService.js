@@ -15,6 +15,11 @@ import {
   MOCK_ASSESSMENTS_OVERVIEW,
   MOCK_ASSESSMENT_HISTORY,
   MOCK_ASSESSMENT_TRENDS,
+  MOCK_NEUROTWIN_OVERVIEW,
+  MOCK_NEUROTWIN_CATEGORIES,
+  MOCK_NEUROTWIN_TIMELINE,
+  MOCK_NEUROTWIN_CHANGE_SUMMARIES,
+  MOCK_NEUROTWIN_COVERAGE,
 } from './mockData';
 
 /**
@@ -450,4 +455,133 @@ export async function saveAssessmentResult(payload) {
     message: "Assessment session saved to local prototype session memory.",
     data: payload,
   };
+}
+
+/**
+ * NeuroTwin Personal Health Data Service Methods
+ */
+
+export async function fetchNeuroTwinOverview(isDemo = true) {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      // Future Supabase query placeholder
+    } catch (err) {
+      console.warn("Error fetching NeuroTwin overview:", err);
+    }
+  }
+
+  if (isDemo) {
+    return MOCK_NEUROTWIN_OVERVIEW;
+  }
+
+  return {
+    coveragePercent: 0,
+    calibratedCategoriesCount: 0,
+    totalCategoriesCount: 8,
+    lastUpdated: "No records yet",
+    activeReferenceWindow: "Uncalibrated",
+    summary: "No personal health data or assessment sessions recorded yet.",
+  };
+}
+
+export async function fetchNeuroTwinCategories(isDemo = true) {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      // Future Supabase query placeholder
+    } catch (err) {
+      console.warn("Error fetching NeuroTwin categories:", err);
+    }
+  }
+
+  if (isDemo) {
+    return MOCK_NEUROTWIN_CATEGORIES;
+  }
+
+  // Empty state structure
+  const emptyCategories = {};
+  const categoryKeys = ['cognitive', 'reaction', 'attention', 'memory', 'motor', 'sleep', 'activity', 'physiology'];
+  const categoryNames = {
+    cognitive: "Cognitive Performance",
+    reaction: "Reaction Time",
+    attention: "Sustained Attention",
+    memory: "Working Memory",
+    motor: "Motor Performance",
+    sleep: "Sleep Architecture",
+    activity: "Daily Activity",
+    physiology: "Physiological Telemetry",
+  };
+
+  categoryKeys.forEach((key) => {
+    emptyCategories[key] = {
+      id: key,
+      name: categoryNames[key],
+      shortName: categoryNames[key].split(" ")[0],
+      categoryGroup: "Uncalibrated",
+      svgRegion: key,
+      description: "No measurements recorded for this category yet.",
+      latestValue: null,
+      baselineValue: null,
+      differenceFormatted: null,
+      differenceDirection: null,
+      unit: "",
+      date: "No data",
+      source: "Unconnected",
+      hasData: false,
+      actionLink: key === 'sleep' || key === 'activity' ? '/devices' : key === 'physiology' ? '/baseline' : '/assessments',
+      actionText: "Record Measurement",
+      trend7d: [],
+      trend30d: [],
+      trend90d: [],
+    };
+  });
+
+  return emptyCategories;
+}
+
+export async function fetchNeuroTwinTimeline(isDemo = true) {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      // Future Supabase query placeholder
+    } catch (err) {
+      console.warn("Error fetching NeuroTwin timeline:", err);
+    }
+  }
+
+  if (isDemo) {
+    return MOCK_NEUROTWIN_TIMELINE;
+  }
+
+  return [];
+}
+
+export async function fetchNeuroTwinChangeSummaries(isDemo = true) {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      // Future Supabase query placeholder
+    } catch (err) {
+      console.warn("Error fetching NeuroTwin change summaries:", err);
+    }
+  }
+
+  if (isDemo) {
+    return MOCK_NEUROTWIN_CHANGE_SUMMARIES;
+  }
+
+  return [];
+}
+
+export async function fetchNeuroTwinCoverage(isDemo = true) {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      // Future Supabase query placeholder
+    } catch (err) {
+      console.warn("Error fetching NeuroTwin coverage:", err);
+    }
+  }
+
+  if (isDemo) {
+    return MOCK_NEUROTWIN_COVERAGE;
+  }
+
+  return [];
 }
